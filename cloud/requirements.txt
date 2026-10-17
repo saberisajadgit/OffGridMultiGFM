@@ -1,0 +1,4 @@
+numpy
+scipy
+plotly
+streamlit>=1.57

@@ -1,0 +1,148 @@
+\clearpage
+\part{Analytical checks, design extensions and exercises}
+\section{Derive the steady offset of primary droop}
+Assume identical unsaturated units, no secondary correction, stationary references and a constant load. Let $R_\Sigma=\sum_i r_i$. At equilibrium, the combined power commands give
+\begin{equation}
+\sum_iP_i=R_\Sigma-\frac{NS_r}{R_f}x.
+\end{equation}
+The stationary swing equation also requires $\sum_iP_i-P_L=NS_rDx$. Combining them yields
+\begin{equation}
+x_{ss}=\frac{R_\Sigma-P_L}{NS_r(D+1/R_f)}.
+\end{equation}
+This makes the usual droop offset explicit: a persistent reference deficit is balanced through a nonzero frequency deviation. However, the project's EMS also follows load. If the summed reference eventually equals demand without clipping, the offset can vanish even with secondary control disabled. The result must be interpreted in the context of the full reference path.
+
+\section{A local stability check for frequency restoration}
+\subsection{Make the simplifying assumptions explicit}
+Neglect EMS dynamics, saturation and differences between units for this calculation. Hold the reference perturbation at zero. Let $p$ and $z$ be the identical per-unit power and secondary perturbations. The common-mode linear dynamics are
+\begin{align}
+\dot x&=\frac{p/S_r-Dx}{T_j},\\
+\dot p&=\frac{z-S_rx/R_f-p}{T_f},\\
+\dot z&=-K_if_0x.
+\end{align}
+For a trial response proportional to $e^{\lambda t}$, eliminate $p$ and $z$ to obtain
+\begin{equation}
+T_jT_f\lambda^3+(T_j+DT_f)\lambda^2
++(D+1/R_f)\lambda+\frac{K_if_0}{S_r}=0.
+\end{equation}
+For positive coefficients, the additional cubic Routh--Hurwitz condition is
+\begin{equation}
+(T_j+DT_f)(D+1/R_f)>T_jT_f\frac{K_if_0}{S_r}.
+\end{equation}
+The default settings give a left side of $10.05\times101=1015.05$ and a right side of approximately 46.51. This simplified common-mode system satisfies the condition.
+
+\lesson{Integral action can restore frequency only when its gains and the other dynamics produce a stable response. Increasing the integral gain without checking dynamics is not a valid tuning method.}
+This calculation is not a stability certificate for the full SoC-coupled, saturated model, and it says nothing about omitted relative-angle or converter-network modes. It is an explanatory analytical check derived from the implemented equations.
+
+\section{Power and energy feasibility in the demonstration}
+The total default active-power rating is $3\times5.16=15.48$ MW. The largest external step-profile load, 6 MW, is below this total. Individual feasibility still depends on allocation: a balancing correction can move one unit closer to its limit than the others.
+
+The default per-unit energy is 30 MJ. At initial SoCs 80/60/70 percent and a lower boundary of 2 percent, the aggregate ideal energy above that boundary is
+\begin{equation}
+E_{available}=30\,[0.78+0.58+0.68]=61.2\ \mathrm{MJ}.
+\end{equation}
+The specified load profile consumes
+\begin{equation}
+E_L=3(1)+6(2)+4(2.5)+5.5(2.5)=38.75\ \mathrm{MJ}.
+\end{equation}
+The aggregate budget is sufficient in this ideal comparison. It does not guarantee that no individual battery reaches a boundary first. Nor should exact transient equality of load energy and integrated PCS power be assumed: the reduced swing equation includes an aggregate damping term and transient imbalance without a separate physical energy-state accounting for all those effects.
+
+\section{From voltage diagnostics to a physical network model}
+The simple source-to-source circuit explains why magnitude balancing is only part of the problem. For two voltage phasors behind their branch impedances,
+\begin{equation}
+\underline I_{12}=\frac{\underline U_1-\underline U_2}{Z_1+Z_2}
+\end{equation}
+describes the corresponding two-source loop. With equal magnitudes $U$ and small relative angle $\delta$, the numerator magnitude is approximately $U|\delta|$, with $\delta$ in radians. Equal voltage magnitudes therefore do not eliminate phase-driven current exchange.
+
+In a loaded multi-source network, actual branch currents follow the full network equations. A next-stage model would introduce separate converter angle and voltage states, complex or dynamic branch equations, a load model and physical current limits. Such an extension should be checked against higher-fidelity simulation or measurements before making conclusions about synchronization or fault response.
+
+Virtual impedance also deserves careful interpretation. A conceptual control law is
+\begin{equation}
+\underline V_{cmd,i}=\underline V_{ref,i}-Z_v\underline I_i.
+\end{equation}
+It shapes the effective output behavior by changing a reference. It is not necessarily a physical resistor dissipating $I^2R_v$ heat. The current project combines transformer and virtual impedances numerically for diagnostic calculations; it does not implement that complete measured-current inner-loop law.
+
+\section{A practical sequence for developing a more complete solution}
+\begin{enumerate}
+\item \textbf{Specify the service.} Define island load range, allowed frequency/voltage excursions, operating duration, critical loads and required response to a source trip.
+\item \textbf{Check ratings and reserves.} Use intended battery energy, power capability, current limits and realistic loss assumptions. Check both aggregate and per-unit feasibility.
+\item \textbf{Verify coherent power response.} Use the reduced model to understand signs, allocation and gain interactions. Confirm equilibrium and energy slopes analytically.
+\item \textbf{Add network and independent GFM dynamics.} Represent relative angles, voltage states, branch impedances and reactive load. Check the modes the coherent model excludes.
+\item \textbf{Represent constraints explicitly.} An illustrative physical capability circle is $P_i^2+Q_i^2\le S_{rated,i}^2$, but priority logic, current saturation and converter behavior must be specified rather than inferred from that circle.
+\item \textbf{Define contingency transitions.} On a battery or PCS trip, update the connected topology, recalculate available power, shed load if needed, and restart dynamics with consistent states. The current solver stops instead.
+\item \textbf{Add communication realism.} Sampling, packet loss, quantization and stale data can change supervisory performance. Practical secondary-control research investigates these effects~\cite{secondaryhardware}.
+\item \textbf{Validate progressively.} Compare with an electromagnetic-transient model and measured responses across the intended operating range. Agreement in a single nominal load step is insufficient.
+\end{enumerate}
+
+\section{Default settings as a teaching reference}
+\begin{longtable}{p{.32\textwidth}p{.20\textwidth}p{.36\textwidth}}
+\toprule Setting & Default & Interpretation\\\midrule\endhead
+PCS count and rating & $3\times5.16$ MW & Equal-rated units\\
+Nominal voltage/frequency & 690 V L--L; 60 Hz & Balanced nominal base\\
+Inertia time; damping & 10 s; 1 & Normalized swing parameters\\
+Droop fraction & 0.01 & One percent frequency deviation per unit of droop correction\\
+PCS response time & 0.05 s & Actual-power lag\\
+EMS response time & 0.2 s & First-order reference lag\\
+Frequency integral gain & $8\times10^6$ W/(Hz$\cdot$s) & Per-unit secondary correction\\
+SoC allocation gain & $1.5\times10^5$ W/point & Relative-SoC balancing\\
+Battery energy & 30 MJ per unit & Accelerated demonstration\\
+Voltage mismatch & $\pm1\%$, seed 42 & Repeatable hardware-reference estimate\\
+Transformer $R/X$ & 0.005/0.075 pu & Branch contributions\\
+Virtual $R/X$ & 0.01/0.05 pu & Effective control impedance\\
+Q-droop fraction & 0.02 & Diagnostic voltage law\\
+Voltage balance gain & 10 s$^{-1}$ & Relative compensation dynamics\\
+SoC limits & 2 and 98 percent & First crossing stops the run\\
+\bottomrule
+\end{longtable}
+
+\section{Exercises: explain, calculate, then check in the application}
+\begin{enumerate}
+\item At a positive load step, which changes immediately: the algebraic EMS target, the delayed EMS reference or delivered PCS power? Which derivatives change?
+\item At 59.8 Hz, compute the default droop contribution and the default secondary ramp per unit, before constraints.
+\item If all equal-capacity batteries supply equal power with the SoC gain disabled, will their initial SoC differences disappear?
+\item Multiply battery energy by 100 while retaining power and gains. What happens to the instantaneous SoC slope and ideal balancing time constant?
+\item For a 1 V internal-voltage difference, use the default branch impedances to estimate the pairwise circulating current. Does that calculation include an angle mismatch?
+\item Why can one battery reach its boundary even though total remaining energy is sufficient for the external load?
+\item Does disabling secondary action necessarily produce a permanent frequency error in this project? Explain the role of EMS load feedforward.
+\item What conclusion can be drawn from a successful numerical solve? What additional evidence would be required for a physical multi-inverter stability claim?
+\end{enumerate}
+
+\subsection*{Suggested answers}
+\begin{enumerate}
+\item The target changes algebraically. Power and delayed-reference states stay continuous; their derivatives and the frequency derivative change with the new demand and commands.
+\item The droop contribution is $+1.72$ MW per unit. The secondary ramp is $+1.6$ MW/s per unit. Both are subject to combined-command saturation and anti-windup.
+\item No. Equal power and capacity give identical SoC slopes, preserving their initial differences in the ideal case.
+\item The slope magnitude becomes 100 times smaller and the ideal balancing time becomes 100 times longer. Keeping the same gain is therefore a different energy-balancing time-scale choice.
+\item $Z_{base}=690^2/(5.16\times10^6)\approx0.09227\ \Omega$. Thus $R_b\approx0.001384\ \Omega$ and $X_b\approx0.01153\ \Omega$, giving $1/[2\sqrt{R_b^2+X_b^2}]\approx43$ A. No independent phase mismatch is included.
+\item Energy distribution and feasible transfer matter. Aggregate energy cannot remove a local power, SoC or availability constraint.
+\item No. If total delayed EMS reference ultimately matches demand without clipping, frequency can recover without the secondary loop. The droop-only offset derivation must be applied with its reference assumptions.
+\item Numerical success means the chosen equations were integrated successfully within the solver's criteria. Physical validity requires appropriate dynamics and parameters, convergence checks and independent validation.
+\end{enumerate}
+
+\appendix
+\section{Provenance and interpretation of this document}
+The project was reconstructed from supplied photographs of a notebook called \texttt{Off\_grid\_3\_PCSs.ipynb}. The local source \texttt{src/offgrid\_gfm/model.py} defines the implementation explained here. Its normalized swing equation, three-phase impedance base, power saturation, anti-windup and event-based SoC stopping are deliberate choices. The pairwise current estimate uses two equal branch impedances. Exact reproduction of a photographed plot is not the objective.
+
+Analytical examples and stability calculations are derivations from the equations and the assumptions stated here. They are not hardware measurements. Background references provide context for general control principles and practical concerns; they do not validate the particular gains or voltage approximations used by the project.
+
+\section{Using this file in Overleaf}
+Create a blank Overleaf project, upload \texttt{offgrid\_multi\_gfm\_teaching.tex}, set it as the main document, and select pdfLaTeX. The file is standalone: diagrams use TikZ, code uses \texttt{listings}, and references use an embedded bibliography. No external images, Python execution, bibliography database or shell escape is needed. Recompile if cross-references or the contents page initially show placeholders.
+
+The code excerpts can be checked in the application's Source \& downloads tab. File \texttt{model.py} contains configuration, differential equations and integration; \texttt{report.py} contains plots and exports; \texttt{app.py} contains the interface.
+
+\begin{thebibliography}{9}
+\bibitem{roadmap}
+National Renewable Energy Laboratory and collaborators,
+\emph{Research Roadmap on Grid-Forming Inverters}, NREL/TP-5D00-73476, 2020.
+\url{https://www.nrel.gov/docs/fy21osti/73476.pdf}.
+General background on GFM control and research needs.
+\bibitem{secondaryhardware}
+S. Chakraborty, J. Wang, S. Ganguly and B. Kroposki,
+\emph{Development of a Practical Secondary Control for Hardware Microgrids},
+ECCE poster, NREL/PO-5D00-91676, 2024.
+\url{https://research-hub.nlr.gov/en/publications/development-of-a-practical-secondary-control-for-hardware-microgr/}.
+Practical context for communication and measurement effects.
+\bibitem{project}
+\emph{OffGridMultiGFM project source}, \texttt{src/offgrid\_gfm/model.py}, local project snapshot, October 2026.
+Primary definition of the implementation explained in these notes.
+\end{thebibliography}
+\end{document}

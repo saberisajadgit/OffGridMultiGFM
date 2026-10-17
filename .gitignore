@@ -1,0 +1,20 @@
+# Local environments, caches and generated simulation outputs
+__pycache__/
+.pytest_cache/
+*.egg-info/
+.venv/
+outputs/
+
+# Credentials and machine-local settings
+.env
+.env.*
+.streamlit/secrets.toml
+
+# LaTeX compiler intermediates; keep the teaching PDF and Overleaf source/ZIP
+*.aux
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.synctex.gz
+*.toc

@@ -1,0 +1,130 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage[margin=24mm]{geometry}
+\usepackage{amsmath,amssymb,mathtools}
+\usepackage{booktabs,longtable,array,tabularx}
+\usepackage{xcolor,listings,enumitem}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning}
+\usepackage{hyperref}
+\usepackage{microtype}
+\hypersetup{colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!60!black,citecolor=blue!50!black}
+\setlength{\parskip}{5pt}
+\setlength{\parindent}{0pt}
+\setlength{\emergencystretch}{3em}
+\setlist{itemsep=3pt,topsep=4pt}
+\lstset{language=Python,basicstyle=\ttfamily\footnotesize,breaklines=true,columns=fullflexible,keepspaces=true,showstringspaces=false,frame=single,rulecolor=\color{black!15},backgroundcolor=\color{black!2},keywordstyle=\color{blue!60!black},commentstyle=\color{green!35!black}}
+\newcommand{\clip}{\operatorname{clip}}
+\newcommand{\lesson}[1]{\begin{quote}\textbf{Teaching point.} #1\end{quote}}
+\title{Understanding an Off-Grid Microgrid with\\Multiple Grid-Forming Battery PCSs\\\large From physical problems to control solutions,\\equations and Python implementation}
+\author{Teaching notes for the OffGridMultiGFM project}
+\date{October 2026}
+\begin{document}
+\maketitle
+\begin{abstract}
+An islanded system must establish its own voltage and frequency while continuously supplying a changing load. Multiple battery power conversion systems increase power and energy capacity, but introduce questions of synchronization, load sharing, unequal battery charge, circulating current and protection. These notes develop the problem and its solutions step by step. Physical reasoning is followed by equations, numerical examples, corresponding Python code and suggested experiments. The reference system has three 5.16 MW PCSs at 690 V and 60 Hz. The implemented simulation is a reduced model with one coherent frequency, per-unit power and control states, and approximate voltage diagnostics. General engineering principles, implemented features and proposed extensions are distinguished throughout.
+\end{abstract}
+\textbf{Learning objectives.} After working through these notes, the reader should be able to explain why an island requires grid-forming sources; distinguish power adequacy from energy adequacy; derive the signs and units of the control equations; trace each equation into Python; and identify which conclusions the reduced model can and cannot support.
+
+\textbf{Reading plan.} Part I introduces the physical problems and a staged solution. Part II explains the control layers in plain language. Part III works through their mathematics and code. Part IV develops additional analytical checks and guided exercises. Code excerpts refer to the project's actual solver, while explanatory derivations state their additional assumptions.
+\tableofcontents
+\clearpage
+\part{The physical problem and a staged solution}
+
+\section{What is an off-grid battery microgrid?}
+A battery stores DC energy. Most facility loads require AC voltage, so a power conversion system (PCS) exchanges energy between the battery and an AC network. In an island, at least one connected source must establish a usable voltage reference. Conceptually, phase-a voltage is
+\begin{equation}
+v_a(t)=\sqrt{2}V_\phi(t)\sin\theta(t),\qquad \dot\theta(t)=2\pi f(t),
+\end{equation}
+with the other phases displaced by $120^\circ$. Here $V_\phi$ is phase-to-neutral RMS voltage and $f$ is frequency.
+
+A grid-forming (GFM) inverter maintains an internal voltage reference and adjusts its evolution while exchanging power with the network. A grid-following control primarily synchronizes current injection to an existing voltage reference. That distinction helps explain why an island cannot rely only on controls that require an external reference. The GFM roadmap discusses these control roles and the importance of synchronization, voltage, frequency and protection across time scales~\cite{roadmap}.
+
+The battery supplies energy; the converter and its controller determine how that energy is exchanged. Changing a control gain cannot create additional energy or remove a physical current limit.
+
+\section{The first requirement: satisfy power and energy demand}
+\subsection{Instantaneous power adequacy}
+In a lossless idealization the desired instantaneous balance is
+\begin{equation}
+\sum_{i=1}^{N}P_i(t)=P_L(t).
+\end{equation}
+A real system must also supply losses. During a disturbance, power cannot necessarily adjust instantaneously. Energy in electrical storage elements and source dynamics accommodates the temporary imbalance. The project represents aggregate transient response through a virtual-inertia frequency equation; it does not model the physical energy in every converter capacitor or filter.
+
+If demand exceeds the available discharge power, some combination of additional generation, storage power, load curtailment or shutdown is required. Droop and integral control cannot overcome a sustained infeasible power request.
+
+\subsection{Energy adequacy over an operating period}
+The demand over a period is
+\begin{equation}
+E_L=\int_{t_0}^{t_1}P_L(t)\,dt.
+\end{equation}
+A system can satisfy an instantaneous MW requirement but still run out of MWh before the required operating time. Conversely, it may contain sufficient energy but lack the converter power to supply a large short peak. Both requirements must be checked independently.
+\lesson{Frequency regulation, power sharing and sufficient stored energy are related requirements, but none of them implies the others.}
+
+\section{Why connecting several PCSs is harder than connecting one}
+\subsection{A shared AC network requires coordination}
+Connecting three voltage sources does not simply add their nameplate ratings. Their phase and frequency trajectories must remain compatible, their power contributions must be feasible, and their voltage references must not cause excessive current exchange.
+
+The conceptual arrangement is shown below. Each battery belongs to its own PCS. A branch includes transformer impedance and the effective impedance produced by control.
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[>=Latex,block/.style={draw,rounded corners,minimum height=9mm,minimum width=24mm,align=center},font=\small]
+\foreach \i/\yy in {1/2,2/0,3/-2}{
+\node[block] (b\i) at (0,\yy) {Battery \i};
+\node[block] (p\i) at (3,\yy) {GFM PCS \i};
+\node[block] (z\i) at (6,\yy) {Branch $Z_b$};
+\draw[<->] (b\i)--(p\i);
+\draw[<->] (p\i)--(z\i);
+\draw (z\i.east)--(8,\yy);
+}
+\draw[very thick] (8,-2.5)--(8,2.5);
+\node[above] at (8,2.5) {Islanded AC bus};
+\node[block] (load) at (10.5,0) {Load};
+\draw[<->] (8,0)--(load);
+\end{tikzpicture}
+\caption{Conceptual three-PCS island. The following tutorial also extends the equations to $N$ identical-rated units. In this drawing $Z_b$ denotes a branch; later equations distinguish the impedance base from actual branch impedance.}
+\end{figure}
+
+\subsection{Six problems that must be addressed}
+\begin{enumerate}
+\item \textbf{Sudden load changes.} Power response takes time. A temporary deficit or excess causes frequency movement.
+\item \textbf{Active-power sharing.} Independent converters must contribute cooperatively rather than issuing incompatible commands.
+\item \textbf{Frequency restoration.} Primary droop can support demand with a steady frequency offset when references do not fully match the load.
+\item \textbf{Unequal battery reserves.} Equal power sharing can deplete the lowest-SoC battery before the others.
+\item \textbf{Voltage mismatch.} Magnitude and phase differences can produce current between sources in addition to useful load current.
+\item \textbf{Operating limits.} Current, power, DC voltage, temperature and SoC constraints can make the requested operating point infeasible.
+\end{enumerate}
+Each problem suggests a different feedback objective. A single controller cannot be tuned meaningfully without specifying which error it is intended to correct.
+
+\section{Build a solution step by step}
+\begin{description}[style=nextline]
+\item[Step 1: establish the voltage/frequency reference.] Use suitable GFM control at the sources. The reduced project assumes coherent operation and represents it with one common frequency; it does not simulate the process of synchronizing independent sources.
+\item[Step 2: add fast primary power response.] Use frequency deviation to request more or less power through droop, with finite converter response and limits.
+\item[Step 3: restore nominal frequency.] Add secondary integral action to adjust the power correction when a frequency error persists.
+\item[Step 4: allocate energy use.] Add EMS feedforward and relative-SoC correction so high-SoC units receive greater discharge duty.
+\item[Step 5: coordinate voltage behavior.] Use appropriate voltage control and impedance shaping. The current project illustrates relative voltage compensation through approximate diagnostics.
+\item[Step 6: define behavior at constraints.] Saturate commands, prevent integral windup, detect energy boundaries and define a feasible contingency response. The current model stops at the first battery boundary; redispatch after a trip remains an extension.
+\end{description}
+These layers operate together. A common design intention is to separate fast inner control, primary response and slower supervisory action, but their actual bandwidths must be evaluated. The current equations do not enforce a strict time-scale hierarchy.
+
+\section{Start from a clearly defined model boundary}
+The simulation has one common normalized frequency, one common angle-deviation state, and five states per PCS: actual power, delayed EMS reference, secondary correction, voltage compensation and SoC. Thus the state count is $2+5N$, giving 17 states for three units.
+
+This makes the model useful for aggregate frequency and battery-allocation studies. However, it excludes separate unit angles, a solved AC network, switching dynamics, independent reactive loads and physical current-limit behavior. A smooth coherent frequency curve therefore cannot prove synchronization or hardware-level stability of several real PCSs.
+
+The voltage compensation path is a diagnostic approximation and does not feed back into the active-power dynamics. This separation is a property of this implementation, not a general property of physical microgrids.
+
+\section{Conventions to establish before reading any equation}
+Internal power is in watts. Positive PCS power discharges a battery; negative power charges it. Positive external load consumes power. SoC is in percentage points: 70 means 70 percent, not 0.70.
+
+For balanced three-phase nominal values,
+\begin{equation}
+V_\phi=\frac{V_{LL}}{\sqrt{3}},\qquad Z_{base}=\frac{V_{LL}^2}{S_r}.
+\end{equation}
+Here $S_r$ is the per-unit rating/power base and also the implemented active-power limit. The code does not implement an apparent-power capability circle simply because a rating symbol is used.
+
+The mathematical normalized frequency variable is $x=(f-f_0)/f_0$. In Python that state is named \texttt{speed}. Python also uses the local name \texttt{x} for branch reactance in ohms. These two meanings must be distinguished.
+
+\clearpage
+\part{Control layers: purpose, behavior and limitations}

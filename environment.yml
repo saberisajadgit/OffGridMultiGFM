@@ -1,0 +1,14 @@
+name: offgrid-multi-gfm
+channels:
+  - conda-forge
+  - nodefaults
+dependencies:
+  - python=3.12
+  - numpy
+  - scipy
+  - plotly
+  - streamlit>=1.57
+  - pytest
+  - pip
+  - pip:
+      - -e .
