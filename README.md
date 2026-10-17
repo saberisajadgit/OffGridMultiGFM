@@ -1,6 +1,21 @@
 # Off-grid multi-GFM PCS environment
 
-Independent sibling of DoubleConversionBESSforAIDataCenter. The existing project is unchanged.
+Interactive workbench for studying off-grid parallel grid-forming battery PCSs, frequency control, EMS power sharing, SoC balancing and voltage coordination.
+
+## Run online — no installation required
+
+**[Launch the off-grid multi-GFM workbench](https://offgridmultigfm.streamlit.app/)**
+
+1. Open the app and click **Run simulation** to explore the default three-PCS scenario.
+2. Adjust the parameters or upload a load CSV, then run another scenario to compare results.
+3. Open **Control system explained** for the teaching guide, equations and Python walkthrough.
+4. Use **Source & downloads** to inspect the implementation and export results.
+
+This is a reduced-order teaching and exploratory model. All units share one frequency state; voltage and circulating current are estimates. See [model assumptions](docs/model-notes.md) before interpreting results. Session scenarios are temporary; download runs you want to keep.
+
+## Run locally
+
+This project is independent of DoubleConversionBESSforAIDataCenter.
 
 In Anaconda Prompt:
 
