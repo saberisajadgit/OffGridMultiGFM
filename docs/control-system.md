@@ -110,7 +110,7 @@ Use **Compare scenarios** to change one setting at a time with the same load, ba
 - Set `voltage_balance_gain_s` to zero to compare the estimated effect of voltage compensation. This changes voltage diagnostics, not the active-power/frequency solution.
 - Increase `energy_mwh` to a realistic container capacity to study slower SoC evolution. The default is only **30 MJ = 0.00833 MWh per unit**, deliberately chosen to make balancing visible in an 8 s demonstration.
 
-Check both frequency recovery and power/SoC headroom. Small voltage differences or a completed solver run alone are not evidence of hardware-level stability or protection compliance. See **Model & equations** for the exact implemented equations and reconstruction assumptions.
+Check both frequency recovery and power/SoC headroom. Small voltage differences or a completed solver run alone are not evidence of hardware-level stability or protection compliance. See **Model & equations** for the exact implemented equations and modeling assumptions.
 
 ## From equations to Python: a guided walkthrough
 

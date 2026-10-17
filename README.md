@@ -37,13 +37,13 @@ Command-line reference scenario: `offgrid-gfm --output outputs/latest`. Open out
 
 The workbench supports 2–12 equal-rated units (three by default), separate initial SoCs, editable ratings/controllers/impedance, step or linear CSV input (`time_s,load_mw`), eight interactive result panels, four session scenarios, source inspection and portable exports. Positive power means battery discharge; negative load means charging. Values shown under results belong to the selected completed run. Initial SoCs must be entered for every unit.
 
-Screenshot reference load: 3 MW initially, 6 MW at 1 s, 4 MW at 3 s, 5.5 MW at 5.5 s; finish at 8 s. The screenshot seed and voltage mismatches are retained. Battery energy defaults to the screenshot's accelerated 30 MJ per unit, not a commercial battery size.
+Default load scenario: 3 MW initially, 6 MW at 1 s, 4 MW at 3 s, 5.5 MW at 5.5 s; finish at 8 s. A fixed random seed makes voltage mismatches repeatable. Battery energy defaults to an accelerated 30 MJ per unit so SoC dynamics are visible over the demonstration interval; use the intended battery capacity for engineering studies.
 
-See [model notes](docs/model-notes.md) for deliberate departures from the source screenshots and the model's engineering scope. No cloud deployment is performed. A cloud entry point is supplied for later use.
+See [model notes](docs/model-notes.md) for the implemented equations, assumptions and engineering scope. The [online workbench](https://offgridmultigfm.streamlit.app/) uses the same solver and interface as the local application.
 
 ## Teaching guide
 
-Read the [control-system explanation](docs/control-system.md), [model assumptions](docs/model-notes.md), or the detailed [PDF teaching document](docs/overleaf/offgrid_multi_gfm_teaching.pdf). For Overleaf, upload the [standalone project ZIP](docs/overleaf/offgrid_multi_gfm_overleaf.zip) or use the [LaTeX source](docs/overleaf/offgrid_multi_gfm_teaching.tex).
+Read the [control-system explanation](docs/control-system.md), [model assumptions](docs/model-notes.md), or the detailed [LaTeX teaching document](docs/overleaf/offgrid_multi_gfm_teaching.tex). For Overleaf, upload the [standalone project ZIP](docs/overleaf/offgrid_multi_gfm_overleaf.zip) or use the [LaTeX source](docs/overleaf/offgrid_multi_gfm_teaching.tex).
 
 ## Tests and cloud entry point
 

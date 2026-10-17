@@ -251,7 +251,7 @@ Use \textbf{Compare scenarios} to change one setting at a time with the same loa
 \item Increase \texttt{energy\_mwh} to a realistic container capacity to study slower SoC evolution. The default is only \textbf{30 MJ = 0.00833 MWh per unit}, deliberately chosen to make balancing visible in an 8 s demonstration.
 
 \end{itemize}
-Check both frequency recovery and power/SoC headroom. Small voltage differences or a completed solver run alone are not evidence of hardware-level stability or protection compliance. See \textbf{Model \& equations} for the exact implemented equations and reconstruction assumptions.
+Check both frequency recovery and power/SoC headroom. Small voltage differences or a completed solver run alone are not evidence of hardware-level stability or protection compliance. See \textbf{Model \& equations} for the exact implemented equations and modeling assumptions.
 
 \clearpage
 \part{From equations to Python: a guided walkthrough}
@@ -677,8 +677,8 @@ SoC limits & 2 and 98 percent & First crossing stops the run\\
 \end{enumerate}
 
 \appendix
-\section{Provenance and interpretation of this document}
-The project was reconstructed from supplied photographs of a notebook called \texttt{Off\_grid\_3\_PCSs.ipynb}. The local source \texttt{src/offgrid\_gfm/model.py} defines the implementation explained here. Its normalized swing equation, three-phase impedance base, power saturation, anti-windup and event-based SoC stopping are deliberate choices. The pairwise current estimate uses two equal branch impedances. Exact reproduction of a photographed plot is not the objective.
+\section{Model definition and interpretation}
+The local source \texttt{src/offgrid\_gfm/model.py} defines the implementation explained here. It uses a normalized swing equation, a balanced three-phase impedance base, active-power saturation, secondary anti-windup and event-based SoC stopping. The pairwise current estimate uses two equal branch impedances. These choices define the scope of the reduced model and the interpretation of its outputs.
 
 Analytical examples and stability calculations are derivations from the equations and the assumptions stated here. They are not hardware measurements. Background references provide context for general control principles and practical concerns; they do not validate the particular gains or voltage approximations used by the project.
 
@@ -700,7 +700,7 @@ ECCE poster, NREL/PO-5D00-91676, 2024.
 \url{https://research-hub.nlr.gov/en/publications/development-of-a-practical-secondary-control-for-hardware-microgr/}.
 Practical context for communication and measurement effects.
 \bibitem{project}
-\emph{OffGridMultiGFM project source}, \texttt{src/offgrid\_gfm/model.py}, local project snapshot, October 2026.
+\emph{OffGridMultiGFM project source}, \texttt{src/offgrid\_gfm/model.py}, project implementation, October 2026.
 Primary definition of the implementation explained in these notes.
 \end{thebibliography}
 \end{document}

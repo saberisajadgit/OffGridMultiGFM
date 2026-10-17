@@ -1,4 +1,4 @@
-"""Run the screenshot load-step example from the command line."""
+"""Run the default load-step example from the command line."""
 import argparse
 from pathlib import Path
 from .model import simulate

@@ -40,7 +40,7 @@ with setup:
     st.subheader('Battery containers → parallel GFM PCSs → islanded AC bus → load')
     st.info('Default reference: 3 × 5.16 MW, 690 V L-L, 60 Hz; 3 → 6 → 4 → 5.5 MW at 0 / 1 / 3 / 5.5 s, ending at 8 s.')
     st.write('Each unit has a transformer and virtual impedance. The EMS adds SoC balancing to equal power sharing; local droop supplies fast response and secondary integral control restores frequency.')
-    st.warning('The screenshot energy is only 30 MJ (0.00833 MWh) per unit and intentionally accelerates SoC dynamics. Set energy_mwh to the actual battery capacity for engineering studies.')
+    st.warning('The default demonstration energy is only 30 MJ (0.00833 MWh) per unit and intentionally accelerates SoC dynamics. Set energy_mwh to the actual battery capacity for engineering studies.')
 if run:
     try:
         c = Config(**values)
